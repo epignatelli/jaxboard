@@ -28,10 +28,11 @@ import time
 import warnings
 import wave
 import matplotlib as mpl
+
 # Necessary to prevent attempted Tk import:
 with warnings.catch_warnings():
-    warnings.simplefilter('ignore')
-    mpl.use('Agg')
+    warnings.simplefilter("ignore")
+    mpl.use("Agg")
 # pylint: disable=g-import-not-at-top
 import matplotlib.pyplot as plt
 import numpy as np
@@ -40,6 +41,7 @@ import tensorflow as tf
 # pylint: disable=g-direct-tensorflow-import
 from tensorflow.core.util import event_pb2
 from tensorflow.python.summary.writer.event_file_writer import EventFileWriter
+
 # pylint: enable=g-direct-tensorflow-import
 import pickle
 
@@ -62,7 +64,7 @@ def _pack_images(images, rows, cols):
     batch = np.shape(images)[0]
     rows = np.minimum(rows, batch)
     cols = np.minimum(batch // rows, cols)
-    images = images[:rows * cols]
+    images = images[: rows * cols]
     images = np.reshape(images, (rows, cols, width, height, depth))
     images = np.transpose(images, [0, 2, 1, 3, 4])
     images = np.reshape(images, [rows * width, cols * height, depth])
@@ -109,12 +111,12 @@ class SummaryWriter(object):
             self._closed = True
             del self._event_writer
 
-    def __del__(self):    # safe?
+    def __del__(self):  # safe?
         # TODO(afrozm): Sometimes this complains with
         #    `TypeError: 'NoneType' object is not callable`
         try:
             self.close()
-        except Exception:    # pylint: disable=broad-except
+        except Exception:  # pylint: disable=broad-except
             pass
 
     def flush(self):
@@ -136,7 +138,8 @@ class SummaryWriter(object):
         else:
             self._step = step
         summary = tf.compat.v1.Summary(
-                value=[tf.compat.v1.Summary.Value(tag=tag, simple_value=value)])
+            value=[tf.compat.v1.Summary.Value(tag=tag, simple_value=value)]
+        )
         self.add_summary(summary, step)
 
     def image(self, tag, image, step=None):
@@ -157,14 +160,16 @@ class SummaryWriter(object):
         if np.shape(image)[-1] == 1:
             image = np.repeat(image, 3, axis=-1)
         image_strio = io.BytesIO()
-        plt.imsave(image_strio, image, format='png')
+        plt.imsave(image_strio, image, format="png")
         image_summary = tf.compat.v1.Summary.Image(
-                encoded_image_string=image_strio.getvalue(),
-                colorspace=3,
-                height=image.shape[0],
-                width=image.shape[1])
+            encoded_image_string=image_strio.getvalue(),
+            colorspace=3,
+            height=image.shape[0],
+            width=image.shape[1],
+        )
         summary = tf.compat.v1.Summary(
-                value=[tf.compat.v1.Summary.Value(tag=tag, image=image_summary)])
+            value=[tf.compat.v1.Summary.Value(tag=tag, image=image_summary)]
+        )
         self.add_summary(summary, step)
 
     def images(self, tag, images, step=None, rows=None, cols=None):
@@ -214,14 +219,16 @@ class SummaryWriter(object):
         fig = mpl_plt.get_current_fig_manager()
         img_w, img_h = fig.canvas.get_width_height()
         image_buf = io.BytesIO()
-        mpl_plt.savefig(image_buf, format='png')
+        mpl_plt.savefig(image_buf, format="png")
         image_summary = tf.compat.v1.Summary.Image(
-                encoded_image_string=image_buf.getvalue(),
-                colorspace=4,    # RGBA
-                height=img_h,
-                width=img_w)
+            encoded_image_string=image_buf.getvalue(),
+            colorspace=4,  # RGBA
+            height=img_h,
+            width=img_w,
+        )
         summary = tf.compat.v1.Summary(
-                value=[tf.compat.v1.Summary.Value(tag=tag, image=image_summary)])
+            value=[tf.compat.v1.Summary.Value(tag=tag, image=image_summary)]
+        )
         self.add_summary(summary, step)
         if close_plot:
             mpl_plt.close()
@@ -241,14 +248,16 @@ class SummaryWriter(object):
             self._step = step
         img_w, img_h = fig.canvas.get_width_height()
         image_buf = io.BytesIO()
-        plt.savefig(image_buf, format='png')
+        plt.savefig(image_buf, format="png")
         image_summary = tf.compat.v1.Summary.Image(
-                encoded_image_string=image_buf.getvalue(),
-                colorspace=4,    # RGBA
-                height=img_h,
-                width=img_w)
+            encoded_image_string=image_buf.getvalue(),
+            colorspace=4,  # RGBA
+            height=img_h,
+            width=img_w,
+        )
         summary = tf.compat.v1.Summary(
-                value=[tf.compat.v1.Summary.Value(tag=tag, image=image_summary)])
+            value=[tf.compat.v1.Summary.Value(tag=tag, image=image_summary)]
+        )
         self.add_summary(summary, step)
         if close_plot:
             plt.close(fig)
@@ -271,26 +280,28 @@ class SummaryWriter(object):
             self._step = step
         audiodata = np.clip(np.squeeze(audiodata), -1, 1)
         if audiodata.ndim != 1:
-            raise ValueError('Audio data must be 1D.')
+            raise ValueError("Audio data must be 1D.")
         sample_list = (32767.0 * audiodata).astype(int).tolist()
         wio = io.BytesIO()
-        wav_buf = wave.open(wio, 'wb')
+        wav_buf = wave.open(wio, "wb")
         wav_buf.setnchannels(1)
         wav_buf.setsampwidth(2)
         wav_buf.setframerate(sample_rate)
-        enc = b''.join([struct.pack('<h', v) for v in sample_list])
+        enc = b"".join([struct.pack("<h", v) for v in sample_list])
         wav_buf.writeframes(enc)
         wav_buf.close()
         encoded_audio_bytes = wio.getvalue()
         wio.close()
         audio = tf.compat.v1.Summary.Audio(
-                sample_rate=sample_rate,
-                num_channels=1,
-                length_frames=len(sample_list),
-                encoded_audio_string=encoded_audio_bytes,
-                content_type='audio/wav')
+            sample_rate=sample_rate,
+            num_channels=1,
+            length_frames=len(sample_list),
+            encoded_audio_string=encoded_audio_bytes,
+            content_type="audio/wav",
+        )
         summary = tf.compat.v1.Summary(
-                value=[tf.compat.v1.Summary.Value(tag=tag, audio=audio)])
+            value=[tf.compat.v1.Summary.Value(tag=tag, audio=audio)]
+        )
         self.add_summary(summary, step)
 
     def histogram(self, tag, values, bins, step=None):
@@ -312,24 +323,27 @@ class SummaryWriter(object):
         counts, limits = np.histogram(values, bins=bins)
         # boundary logic
         cum_counts = np.cumsum(np.greater(counts, 0, dtype=np.int32))
-        start, end = np.searchsorted(
-                cum_counts, [0, cum_counts[-1] - 1], side='right')
+        start, end = np.searchsorted(cum_counts, [0, cum_counts[-1] - 1], side="right")
         start, end = int(start), int(end) + 1
         counts = (
-                counts[start -
-                             1:end] if start > 0 else np.concatenate([[0], counts[:end]]))
-        limits = limits[start:end + 1]
+            counts[start - 1 : end]
+            if start > 0
+            else np.concatenate([[0], counts[:end]])
+        )
+        limits = limits[start : end + 1]
         sum_sq = values.dot(values)
         histo = tf.compat.v1.HistogramProto(
-                min=values.min(),
-                max=values.max(),
-                num=len(values),
-                sum=values.sum(),
-                sum_squares=sum_sq,
-                bucket_limit=limits.tolist(),
-                bucket=counts.tolist())
+            min=values.min(),
+            max=values.max(),
+            num=len(values),
+            sum=values.sum(),
+            sum_squares=sum_sq,
+            bucket_limit=limits.tolist(),
+            bucket=counts.tolist(),
+        )
         summary = tf.compat.v1.Summary(
-                value=[tf.compat.v1.Summary.Value(tag=tag, histo=histo)])
+            value=[tf.compat.v1.Summary.Value(tag=tag, histo=histo)]
+        )
         self.add_summary(summary, step)
 
     def text(self, tag, textdata, step=None):
@@ -346,26 +360,30 @@ class SummaryWriter(object):
         else:
             self._step = step
         smd = tf.compat.v1.SummaryMetadata(
-                plugin_data=tf.compat.v1.SummaryMetadata.PluginData(plugin_name='text'))
+            plugin_data=tf.compat.v1.SummaryMetadata.PluginData(plugin_name="text")
+        )
         if isinstance(textdata, (str, bytes)):
             tensor = tf.make_tensor_proto(
-                    values=[textdata.encode(encoding='utf_8')], shape=(1,))
+                values=[textdata.encode(encoding="utf_8")], shape=(1,)
+            )
         else:
-            textdata = np.array(textdata)    # convert lists, jax arrays, etc.
+            textdata = np.array(textdata)  # convert lists, jax arrays, etc.
             datashape = np.shape(textdata)
             if len(datashape) == 1:
                 tensor = tf.make_tensor_proto(
-                        values=[td.encode(encoding='utf_8') for td in textdata],
-                        shape=(datashape[0],))
+                    values=[td.encode(encoding="utf_8") for td in textdata],
+                    shape=(datashape[0],),
+                )
             elif len(datashape) == 2:
                 tensor = tf.make_tensor_proto(
-                        values=[
-                                td.encode(encoding='utf_8') for td in np.reshape(textdata, -1)
-                        ],
-                        shape=(datashape[0], datashape[1]))
+                    values=[
+                        td.encode(encoding="utf_8") for td in np.reshape(textdata, -1)
+                    ],
+                    shape=(datashape[0], datashape[1]),
+                )
         summary = tf.compat.v1.Summary(
-                value=[tf.compat.v1.Summary.Value(
-                        tag=tag, metadata=smd, tensor=tensor)])
+            value=[tf.compat.v1.Summary.Value(tag=tag, metadata=smd, tensor=tensor)]
+        )
         self.add_summary(summary, step)
 
     def checkpoint(self, tag, params, step, loss=None):
@@ -402,16 +420,16 @@ def markdownify_operative_config_str(string):
     # TODO(b/37527917): Total hack below. Implement more principled formatting.
     def process(line):
         """Convert a single line to markdown format."""
-        if not line.startswith('#'):
-            return '        ' + line
+        if not line.startswith("#"):
+            return "        " + line
 
         line = line[2:]
-        if line.startswith('===='):
-            return ''
-        if line.startswith('None'):
-            return '        # None.'
-        if line.endswith(':'):
-            return '#### ' + line
+        if line.startswith("===="):
+            return ""
+        if line.startswith("None"):
+            return "        # None."
+        if line.endswith(":"):
+            return "#### " + line
         return line
 
     output_lines = []
@@ -420,4 +438,4 @@ def markdownify_operative_config_str(string):
         if procd_line is not None:
             output_lines.append(procd_line)
 
-    return '\n'.join(output_lines)
+    return "\n".join(output_lines)
