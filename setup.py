@@ -17,7 +17,6 @@ setuptools.setup(
         "matplotlib",
         "tensorboard",
         "tensorflow>=1.15.0",
-        "tensorflow-gpu>=1.15.0",
     ],
     classifiers=[
         "Programming Language :: Python :: 3",
